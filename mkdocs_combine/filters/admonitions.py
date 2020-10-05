@@ -36,19 +36,19 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
         currblock = 0
 
         for line in lines:
-            line += '\n'
+            
             if state.isstate('start'):
-                if line[:3] == '```':
-                    state.set('```')
-                else:
-                    state.set('\n')
+                if line.startswith('!!!') or line.startswith('???'):
+                    state.set('!!!')
                 blocks.append('')
                 currblock = len(blocks) - 1
-            else:
-                marker = line[:3]  # Will capture either '\n' or '```'
-                if state.isstate(marker):
-                    state.reset()
-            blocks[currblock] += line
+            elif state.isstate('!!!') or state.isstate('\n'):
+                if line.strip() == '':
+                    state.set('\n')
+                elif not line.startswith('    '):
+                    state.set('start')
+            
+            blocks[currblock] += line + '\n'
 
         return blocks
 
@@ -69,7 +69,6 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
             lines = block.strip().split('\n')
             m = self.RE.search(lines.pop(0))
             klass, title = self.get_class_and_title(m)
-            
             lines = list(map(lambda x:self.detab(x)[0], lines))
             lines = ['\n'.join(lines[:-1])]
             lines.insert(0, f'### {klass.title()}: {title}')
