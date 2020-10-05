@@ -17,8 +17,11 @@
 # mdtableconv.py - converts pipe tables to Pandoc's grid tables
 import markdown.extensions.admonition as adm
 import markdown.blockparser
+import re
 
 class AdmonitionFilter(adm.AdmonitionProcessor):
+
+    RE = re.compile(r'(?:^|\n)(?:!!!|\?\?\?)\ ?([\w\-]+)(?:\ "?([^"\n]+)"?)?')
 
     def __init__(self, encoding='utf-8', tab_length = 4):
         self.encoding = encoding
@@ -33,22 +36,28 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
         state.set('start')
 
         # index of current block
-        currblock = 0
+        currblock = -1
 
         for line in lines:
-            
+            new_block = False
             if state.isstate('start'):
                 if line.startswith('!!!') or line.startswith('???'):
                     state.set('!!!')
-                blocks.append('')
-                currblock = len(blocks) - 1
-            elif state.isstate('!!!') or state.isstate('\n'):
-                if line.strip() == '':
-                    state.set('\n')
-                elif not line.startswith('    '):
+                new_block = True
+            elif state.isstate('!!!'):
+                if line.startswith('!!!') or line.startswith('???'):
+                    new_block = True
+                elif line.strip() != '' and not line.startswith('    '):
                     state.set('start')
-            
-            blocks[currblock] += line + '\n'
+                    new_block = True
+                else:
+                    line += '\n'
+
+            if new_block:
+                blocks.append('')
+                currblock += 1
+
+            blocks[currblock] += line
 
         return blocks
 
@@ -58,7 +67,6 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
 
         blocks = self.blocks(lines)
         for block in blocks:
-
             ret.extend(self.convert_admonition(block))
 
         return ret
@@ -70,7 +78,8 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
             m = self.RE.search(lines.pop(0))
             klass, title = self.get_class_and_title(m)
             lines = list(map(lambda x:self.detab(x)[0], lines))
-            lines = ['\n'.join(lines[:-1])]
-            lines.insert(0, f'### {klass.title()}: {title}')
+            lines = ['\n'.join(lines)]
+            lines.insert(0, f'### {klass.title()}: {title}\n')
+            lines.append('\n')
 
         return lines
