@@ -15,10 +15,8 @@
 # limitations under the License.
 #
 # mdtableconv.py - converts pipe tables to Pandoc's grid tables
-
 import markdown.extensions.admonition as adm
 import markdown.blockparser
-from markdown.util import etree
 
 class AdmonitionFilter(adm.AdmonitionProcessor):
 
@@ -67,27 +65,13 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
 
     def convert_admonition(self, block):
         lines = block.split('\n')
-
         if self.RE.search(block):
-
+            lines = block.strip().split('\n')
             m = self.RE.search(lines.pop(0))
             klass, title = self.get_class_and_title(m)
             
             lines = list(map(lambda x:self.detab(x)[0], lines))
-            lines = '\n'.join(lines[:-1])
-            
-            div = etree.Element('div')
-            div.set('class', '%s %s' % (self.CLASSNAME, klass))
-            if title:
-                p = etree.SubElement(div, 'p')
-                p.set('class', self.CLASSNAME_TITLE)
-                p.text = title
-
-            content = etree.SubElement(div, 'p')
-            content.text = lines
-
-            string = etree.tostring(div).decode(self.encoding)
-            lines = [string]
-            lines.append('')
+            lines = ['\n'.join(lines[:-1])]
+            lines.insert(0, f'### {klass.title()}: {title}')
 
         return lines
