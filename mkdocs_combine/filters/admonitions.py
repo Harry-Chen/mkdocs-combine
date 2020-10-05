@@ -79,7 +79,7 @@ class AdmonitionFilter(adm.AdmonitionProcessor):
             klass, title = self.get_class_and_title(m)
             lines = list(map(lambda x:self.detab(x)[0], lines))
             lines = ['\n'.join(lines)]
-            lines.insert(0, f'### {klass.title()}: {title}\n')
+            lines.insert(0, f'### {title}\n')
             lines.append('\n')
 
         return lines
